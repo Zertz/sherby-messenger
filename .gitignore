@@ -1,0 +1,4 @@
+.DS_Store
+.next
+mongodb/data
+node_modules

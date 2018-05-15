@@ -1,0 +1,18 @@
+{
+  "name": "sherby-messenger",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "micro",
+    "dev": "node --inspect=127.0.0.1:9000 node_modules/.bin/micro-dev -p 3000"
+  },
+  "dependencies": {
+    "micro": "^9.3.0",
+    "mongodb": "^3.1.0-beta4"
+  },
+  "devDependencies": {
+    "micro-dev": "^2.2.2",
+    "prettier": "^1.12.1"
+  }
+}

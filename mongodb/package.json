@@ -1,0 +1,15 @@
+{
+  "name": "mongodb",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index"
+  },
+  "dependencies": {
+    "mongodb-topology-manager": "^2.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^1.12.1"
+  }
+}
