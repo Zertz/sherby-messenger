@@ -4,15 +4,15 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "micro",
-    "dev": "node --inspect=127.0.0.1:9000 node_modules/.bin/micro-dev -p 3000"
+    "start": "node index",
+    "dev": "nodemon index"
   },
   "dependencies": {
-    "micro": "^9.3.0",
-    "mongodb": "^3.1.0-beta4"
+    "mongodb": "^3.1.0-beta4",
+    "socket.io": "^2.1.0"
   },
   "devDependencies": {
-    "micro-dev": "^2.2.2",
+    "nodemon": "^1.17.4",
     "prettier": "^1.12.1"
   }
 }

@@ -1,59 +1,120 @@
-export default () => (
-  <section>
-    <style jsx>{`
-      section {
-        display: grid;
-        grid: 1fr min-content / 1fr min-content;
-        grid-gap: 0.5em;
-        grid-template-areas:
-          "messages messages"
-          "input button";
-        position: absolute;
-        top: 0.5em;
-        right: 0.5em;
-        bottom: 0.5em;
-        left: 0.5em;
-      }
+import React, { Fragment, PureComponent } from "react";
+import io from "socket.io-client";
 
-      .MessageList {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        justify-content: flex-end;
-        grid-area: messages;
-        background-color: #fefefe;
-        font-size: 1rem;
-        padding: 0.5em;
-      }
+import MessageList from "./MessageList";
 
-      .Message {
-        display: inline-block;
-        border: 1px solid tomato;
-        border-radius: 0.25em;
-        padding: 0.5em;
-      }
+class Messenger extends PureComponent {
+  state = { message: "", socket: null, token: null };
 
-      .Message:not(:last-child) {
-        margin-bottom: 0.5em;
-      }
+  componentDidMount() {
+    const socket = io("http://192.168.0.145:3300/");
 
-      input {
-        grid-area: input;
-        font-size: 1rem;
-        padding: 1em;
-      }
+    socket.on("token", this.handleToken);
 
-      button {
-        grid-area: button;
-        font-size: 1rem;
-        padding: 1em;
-      }
-    `}</style>
-    <div className="MessageList">
-      <p className="Message">Salut</p>
-      <p className="Message">Allo</p>
-    </div>
-    <input type="text" name="message" />
-    <button type="submit">Envoyer</button>
-  </section>
-);
+    this.setState({
+      socket
+    });
+  }
+
+  componentWillUnmount() {
+    const { socket } = this.state;
+
+    socket.close();
+  }
+
+  handleChange = e => {
+    const {
+      target: { name, value }
+    } = e;
+
+    this.setState({ [name]: value });
+  };
+
+  handleSubmit = e => {
+    const { message, socket, token } = this.state;
+
+    e.preventDefault();
+
+    socket.emit("message:create", JSON.stringify({ message, token }));
+
+    this.setState({
+      message: ""
+    });
+  };
+
+  handleToken = token => {
+    const { socket } = this.state;
+
+    socket.off("token", this.handleToken);
+
+    this.setState({
+      token
+    });
+  };
+
+  render() {
+    const { message, socket, token } = this.state;
+
+    return (
+      <section>
+        <style jsx>{`
+          section {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: absolute;
+            top: 0.5em;
+            right: 0.5em;
+            bottom: 0.5em;
+            left: 0.5em;
+          }
+
+          .User {
+            font-size: 1rem;
+            margin-bottom: 0.5em;
+            text-align: center;
+            word-wrap: break-word;
+          }
+
+          form {
+            display: flex;
+            flex-shrink: 0;
+          }
+
+          input,
+          button {
+            border: 1px solid #ccc;
+          }
+
+          input {
+            flex-grow: 1;
+            font-size: 1rem;
+            margin-right: 0.5em;
+            padding: 1em;
+          }
+
+          button[type="submit"] {
+            flex-shrink: 0;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 1em;
+          }
+        `}</style>
+        <div className="User">{token ? token : "Connecting..."}</div>
+        <MessageList socket={socket} token={token} />
+        <form onSubmit={this.handleSubmit}>
+          <input
+            autoFocus
+            type="text"
+            name="message"
+            value={message}
+            onChange={this.handleChange}
+          />
+          <button type="submit">Envoyer</button>
+        </form>
+      </section>
+    );
+  }
+}
+
+export default Messenger;

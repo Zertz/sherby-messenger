@@ -20,4 +20,6 @@ const ReplSet = require("mongodb-topology-manager").ReplSet;
 
   await replSet.purge();
   await replSet.start();
+
+  console.info("MongoDB started!");
 })();

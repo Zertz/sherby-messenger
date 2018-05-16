@@ -1,40 +1,107 @@
-const { send } = require("micro");
-const { MongoClient } = require("mongodb");
+const crypto = require("crypto");
+const http = require("http");
+const { MongoClient, ObjectId } = require("mongodb");
 
 const db = "sherby-messenger";
 const uri = `mongodb://localhost:31000,localhost:31001,localhost:31002/${db}?replicaSet=rs0`;
 
 let client;
+let watcher;
 
 (async () => {
   client = await MongoClient.connect(uri, {
     useNewUrlParser: true
   });
 
-  client
-    .db(db)
-    .collection("Person")
-    .watch()
-    .on("change", ({ documentKey, fullDocument, operationType }) => {
-      console.log(new Date(), documentKey, fullDocument, operationType);
-    });
+  const collection = await client.db(db).collection("Messages");
 
-  return client;
+  const { insertedId } = await collection.insertOne({});
+
+  await collection.removeOne({
+    _id: insertedId
+  });
 })();
 
-module.exports = async (req, res) => {
-  if (req.method !== "GET") {
-    return send(res, 200);
+const server = http.createServer();
+
+const io = require("socket.io")(server);
+
+io.on("connection", socket => {
+  if (!watcher) {
+    watcher = client
+      .db(db)
+      .collection("Messages")
+      .watch()
+      .on("change", ({ documentKey, fullDocument, operationType }) => {
+        switch (operationType) {
+          case "insert": {
+            socket.broadcast.emit("message:create", fullDocument);
+
+            break;
+          }
+          case "delete": {
+            socket.broadcast.emit("message:delete", documentKey._id);
+
+            break;
+          }
+        }
+      });
   }
 
-  if (req.url !== "/") {
-    return send(res, 200);
-  }
+  socket.emit("token", crypto.randomBytes(32).toString("hex"));
 
-  await client
-    .db(db)
-    .collection("Person")
-    .insertOne({ name: "Axl Rose" });
+  socket.on("message:create", async data => {
+    try {
+      const { message, token } = JSON.parse(data);
 
-  send(res, 200);
-};
+      const trimmedMessage = message.trim();
+
+      if (trimmedMessage.length === 0) {
+        return;
+      }
+
+      await client
+        .db(db)
+        .collection("Messages")
+        .insertOne({ message: trimmedMessage, token, createdAt: new Date() });
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  socket.on("message:delete", async data => {
+    try {
+      const { _id, token } = JSON.parse(data);
+
+      if (!ObjectId.isValid(_id)) {
+        return;
+      }
+
+      await client
+        .db(db)
+        .collection("Messages")
+        .remove({ _id: ObjectId(_id), token });
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  socket.on("message:fetch", async () => {
+    try {
+      const messages = await client
+        .db(db)
+        .collection("Messages")
+        .find()
+        .sort({
+          createdAt: -1
+        })
+        .toArray();
+
+      socket.emit("message:fetch", JSON.stringify(messages));
+    } catch (e) {
+      console.error(e);
+    }
+  });
+});
+
+server.listen(3300);
