@@ -10,8 +10,8 @@ class MessageList extends PureComponent {
     const { socket, token } = this.props;
 
     if (!token && nextProps.token) {
-      socket.on("message:fetch", this.handleFetch);
-      socket.emit("message:fetch");
+      socket.on("message:read", this.handleRead);
+      socket.emit("message:read");
     }
   }
 
@@ -19,6 +19,7 @@ class MessageList extends PureComponent {
     const { socket } = this.props;
 
     socket.off("message:create", this.handleCreate);
+    socket.off("message:update", this.handleUpdate);
     socket.off("message:delete", this.handleDelete);
   }
 
@@ -33,18 +34,10 @@ class MessageList extends PureComponent {
     );
   };
 
-  handleDelete = _id => {
-    const { messages } = this.state;
-
-    this.setState(prevState => ({
-      messages: prevState.messages.filter(m => m._id !== _id)
-    }));
-  };
-
-  handleFetch = messages => {
+  handleRead = messages => {
     const { socket } = this.props;
 
-    socket.off("message:fetch", this.handleFetch);
+    socket.off("message:read", this.handleRead);
 
     this.setState(
       {
@@ -54,9 +47,31 @@ class MessageList extends PureComponent {
         this.ref.scrollTop = this.ref.scrollHeight;
 
         socket.on("message:create", this.handleCreate);
+        socket.on("message:update", this.handleUpdate);
         socket.on("message:delete", this.handleDelete);
       }
     );
+  };
+
+  handleUpdate = message => {
+    this.setState(prevState => ({
+      messages: prevState.messages.map(m => {
+        if (m._id === message._id) {
+          return {
+            ...m,
+            ...message
+          };
+        }
+
+        return m;
+      })
+    }));
+  };
+
+  handleDelete = _id => {
+    this.setState(prevState => ({
+      messages: prevState.messages.filter(m => m._id !== _id)
+    }));
   };
 
   render() {
@@ -70,6 +85,7 @@ class MessageList extends PureComponent {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
+            flex-grow: 1;
             background-color: #fefefe;
             font-size: 1rem;
             margin-bottom: 0.5em;

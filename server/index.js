@@ -31,16 +31,21 @@ io.on("connection", socket => {
     watcher = client
       .db(db)
       .collection("Messages")
-      .watch()
+      .watch({ fullDocument: "updateLookup" })
       .on("change", ({ documentKey, fullDocument, operationType }) => {
         switch (operationType) {
+          case "delete": {
+            socket.broadcast.emit("message:delete", documentKey._id);
+
+            break;
+          }
           case "insert": {
             socket.broadcast.emit("message:create", fullDocument);
 
             break;
           }
-          case "delete": {
-            socket.broadcast.emit("message:delete", documentKey._id);
+          case "update": {
+            socket.broadcast.emit("message:update", fullDocument);
 
             break;
           }
@@ -69,6 +74,48 @@ io.on("connection", socket => {
     }
   });
 
+  socket.on("message:read", async () => {
+    try {
+      const messages = await client
+        .db(db)
+        .collection("Messages")
+        .find()
+        .sort({
+          createdAt: 1
+        })
+        .toArray();
+
+      socket.emit("message:read", JSON.stringify(messages));
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  socket.on("message:update", async data => {
+    try {
+      const { _id, message, token } = JSON.parse(data);
+
+      if (!ObjectId.isValid(_id)) {
+        return;
+      }
+
+      await client
+        .db(db)
+        .collection("Messages")
+        .updateOne(
+          { _id: ObjectId(_id), token },
+          {
+            $set: {
+              message,
+              updatedAt: new Date()
+            }
+          }
+        );
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
   socket.on("message:delete", async data => {
     try {
       const { _id, token } = JSON.parse(data);
@@ -81,23 +128,6 @@ io.on("connection", socket => {
         .db(db)
         .collection("Messages")
         .remove({ _id: ObjectId(_id), token });
-    } catch (e) {
-      console.error(e);
-    }
-  });
-
-  socket.on("message:fetch", async () => {
-    try {
-      const messages = await client
-        .db(db)
-        .collection("Messages")
-        .find()
-        .sort({
-          createdAt: -1
-        })
-        .toArray();
-
-      socket.emit("message:fetch", JSON.stringify(messages));
     } catch (e) {
       console.error(e);
     }

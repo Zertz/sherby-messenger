@@ -7,13 +7,21 @@ class Messenger extends PureComponent {
   state = { message: "", socket: null, token: null };
 
   componentDidMount() {
-    const socket = io("http://192.168.0.145:3300/");
+    const socket = io("http://192.168.1.251:3300/");
+    const token = window.localStorage.getItem("token");
 
-    socket.on("token", this.handleToken);
-
-    this.setState({
-      socket
-    });
+    this.setState(
+      {
+        socket
+      },
+      () => {
+        if (token) {
+          this.handleToken(token);
+        } else {
+          socket.on("token", this.handleToken);
+        }
+      }
+    );
   }
 
   componentWillUnmount() {
@@ -46,6 +54,8 @@ class Messenger extends PureComponent {
     const { socket } = this.state;
 
     socket.off("token", this.handleToken);
+
+    localStorage.setItem("token", token);
 
     this.setState({
       token
@@ -104,6 +114,7 @@ class Messenger extends PureComponent {
         <MessageList socket={socket} token={token} />
         <form onSubmit={this.handleSubmit}>
           <input
+            autoComplete="off"
             autoFocus
             type="text"
             name="message"
