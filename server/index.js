@@ -26,6 +26,8 @@ const server = http.createServer();
 
 const io = require("socket.io")(server);
 
+let connectedUsers = 0;
+
 io.on("connection", socket => {
   if (!watcher) {
     watcher = client
@@ -53,7 +55,19 @@ io.on("connection", socket => {
       });
   }
 
-  socket.emit("token", crypto.randomBytes(32).toString("hex"));
+  setTimeout(() => {
+    socket.emit("user:token", crypto.randomBytes(32).toString("hex"));
+
+    connectedUsers += 1;
+
+    socket.broadcast.emit("user:connect", connectedUsers);
+  }, 1000);
+
+  socket.on("disconnect", () => {
+    connectedUsers -= 1;
+
+    socket.broadcast.emit("user:connect", connectedUsers);
+  });
 
   socket.on("message:create", async data => {
     try {

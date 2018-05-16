@@ -4,11 +4,13 @@ import io from "socket.io-client";
 import MessageList from "./MessageList";
 
 class Messenger extends PureComponent {
-  state = { message: "", socket: null, token: null };
+  state = { connectedUsers: 0, message: "", socket: null, token: null };
 
   componentDidMount() {
-    const socket = io("http://192.168.1.251:3300/");
-    const token = window.localStorage.getItem("token");
+    const socket = io("https://slack-jirafe.fwd.wf/");
+    const token = window.localStorage.getItem("user:token");
+
+    socket.on("user:connect", this.handleConnect);
 
     this.setState(
       {
@@ -18,7 +20,7 @@ class Messenger extends PureComponent {
         if (token) {
           this.handleToken(token);
         } else {
-          socket.on("token", this.handleToken);
+          socket.on("user:token", this.handleToken);
         }
       }
     );
@@ -26,6 +28,8 @@ class Messenger extends PureComponent {
 
   componentWillUnmount() {
     const { socket } = this.state;
+
+    socket.off("user:connect", this.handleConnect);
 
     socket.close();
   }
@@ -36,6 +40,12 @@ class Messenger extends PureComponent {
     } = e;
 
     this.setState({ [name]: value });
+  };
+
+  handleConnect = connectedUsers => {
+    this.setState({
+      connectedUsers
+    });
   };
 
   handleSubmit = e => {
@@ -53,9 +63,9 @@ class Messenger extends PureComponent {
   handleToken = token => {
     const { socket } = this.state;
 
-    socket.off("token", this.handleToken);
+    socket.off("user:token", this.handleToken);
 
-    localStorage.setItem("token", token);
+    localStorage.setItem("user:token", token);
 
     this.setState({
       token
@@ -63,7 +73,7 @@ class Messenger extends PureComponent {
   };
 
   render() {
-    const { message, socket, token } = this.state;
+    const { connectedUsers, message, socket, token } = this.state;
 
     return (
       <section>
@@ -110,7 +120,10 @@ class Messenger extends PureComponent {
             padding: 1em;
           }
         `}</style>
-        <div className="User">{token ? token : "Connecting..."}</div>
+        <div className="User">
+          <p>{token ? token : "Connecting..."}</p>
+          <p>{`Utilisateurs: ${connectedUsers}`}</p>
+        </div>
         <MessageList socket={socket} token={token} />
         <form onSubmit={this.handleSubmit}>
           <input
