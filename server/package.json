@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node index",
+    "deploy": "now && now alias && now rm messenger-ws --safe --yes",
     "dev": "nodemon index"
   },
   "dependencies": {
@@ -12,6 +13,7 @@
     "socket.io": "^2.1.0"
   },
   "devDependencies": {
+    "dotenv-safe": "^5.0.1",
     "nodemon": "^1.17.4",
     "prettier": "^1.12.1"
   }

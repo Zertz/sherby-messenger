@@ -1,25 +1,27 @@
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv-safe").config();
+}
+
 const crypto = require("crypto");
 const http = require("http");
 const { MongoClient, ObjectId } = require("mongodb");
 
-const db = "sherby-messenger";
-const uri = `mongodb://localhost:31000,localhost:31001,localhost:31002/${db}?replicaSet=rs0`;
+const db = process.env.SHERBY_MESSENGER_MONGODB_DB;
 
 let client;
 let watcher;
 
 (async () => {
-  client = await MongoClient.connect(uri, {
-    useNewUrlParser: true
-  });
-
-  const collection = await client.db(db).collection("Messages");
-
-  const { insertedId } = await collection.insertOne({});
-
-  await collection.removeOne({
-    _id: insertedId
-  });
+  try {
+    client = await MongoClient.connect(
+      process.env.SHERBY_MESSENGER_MONGODB_URI,
+      {
+        useNewUrlParser: true
+      }
+    );
+  } catch (e) {
+    console.error(e);
+  }
 })();
 
 const server = http.createServer();
@@ -55,23 +57,22 @@ io.on("connection", socket => {
       });
   }
 
-  setTimeout(() => {
-    socket.emit("user:token", crypto.randomBytes(32).toString("hex"));
+  socket.emit("user:connect", ++connectedUsers);
+  socket.emit("user:token", crypto.randomBytes(32).toString("hex"));
 
-    connectedUsers += 1;
+  socket.broadcast.emit("user:connect", connectedUsers);
 
-    socket.broadcast.emit("user:connect", connectedUsers);
-  }, 1000);
-
-  socket.on("disconnect", () => {
-    connectedUsers -= 1;
-
-    socket.broadcast.emit("user:connect", connectedUsers);
+  socket.once("disconnect", () => {
+    socket.broadcast.emit("user:connect", --connectedUsers);
   });
 
   socket.on("message:create", async data => {
     try {
       const { message, token } = JSON.parse(data);
+
+      if (!token) {
+        return;
+      }
 
       const trimmedMessage = message.trim();
 
@@ -97,6 +98,7 @@ io.on("connection", socket => {
         .sort({
           createdAt: 1
         })
+        .limit(50)
         .toArray();
 
       socket.emit("message:read", JSON.stringify(messages));
@@ -109,7 +111,7 @@ io.on("connection", socket => {
     try {
       const { _id, message, token } = JSON.parse(data);
 
-      if (!ObjectId.isValid(_id)) {
+      if (!ObjectId.isValid(_id) || !message || !token) {
         return;
       }
 
@@ -134,14 +136,14 @@ io.on("connection", socket => {
     try {
       const { _id, token } = JSON.parse(data);
 
-      if (!ObjectId.isValid(_id)) {
+      if (!ObjectId.isValid(_id) || !token) {
         return;
       }
 
       await client
         .db(db)
         .collection("Messages")
-        .remove({ _id: ObjectId(_id), token });
+        .removeOne({ _id: ObjectId(_id), token });
     } catch (e) {
       console.error(e);
     }

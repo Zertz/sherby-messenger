@@ -1,0 +1,16 @@
+{
+  "name": "messenger-ws",
+  "alias": "messenger-ws.pierluc.io",
+  "env": {
+    "NODE_ENV": "production",
+    "SHERBY_MESSENGER_MONGODB_DB": "@sherby_messenger_mongodb_db",
+    "SHERBY_MESSENGER_MONGODB_URI": "@sherby_messenger_mongodb_uri"
+  },
+  "files": ["index.js", "yarn.lock"],
+  "scale": {
+    "sfo1": {
+      "min": 0,
+      "max": "auto"
+    }
+  }
+}

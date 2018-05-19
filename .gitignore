@@ -1,4 +1,5 @@
 .DS_Store
+.env
 .next
 mongodb/data
 node_modules

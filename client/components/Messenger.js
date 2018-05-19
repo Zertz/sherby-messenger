@@ -7,7 +7,7 @@ class Messenger extends PureComponent {
   state = { connectedUsers: 0, message: "", socket: null, token: null };
 
   componentDidMount() {
-    const socket = io("https://slack-jirafe.fwd.wf/");
+    const socket = io(process.env.SHERBY_MESSENGER_WS_URL);
     const token = window.localStorage.getItem("user:token");
 
     socket.on("user:connect", this.handleConnect);
