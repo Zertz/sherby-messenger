@@ -4,5 +4,12 @@
   "main": "index.js",
   "license": "MIT",
   "repository": "https://github.com/Zertz/sherby-messenger",
-  "author": "Pier-Luc Gendreau"
+  "author": "Pier-Luc Gendreau",
+  "scripts": {
+    "install":
+      "cd client && yarn && cd ../mongodb && yarn && cd ../server && yarn && cd ..",
+    "mongodb": "cd mongodb && yarn start",
+    "server": "cd server && yarn dev",
+    "client": "cd client && yarn dev"
+  }
 }
