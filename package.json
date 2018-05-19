@@ -7,9 +7,10 @@
   "author": "Pier-Luc Gendreau",
   "scripts": {
     "install":
-      "cd client && yarn && cd ../mongodb && yarn && cd ../server && yarn && cd ..",
+      "cd client && yarn && cd ../mongodb && yarn && cd ../server && yarn",
     "mongodb": "cd mongodb && yarn start",
     "server": "cd server && yarn dev",
-    "client": "cd client && yarn dev"
+    "client": "cd client && yarn dev",
+    "deploy": "cd client && yarn deploy && cd ../server && yarn deploy"
   }
 }
